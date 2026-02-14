@@ -1,6 +1,6 @@
-import { create } from "zustand";
+import { writable } from "svelte/store";
 
-type DeployStatus =
+export type DeployStatus =
   | "idle"
   | "preparing"
   | "uploading"
@@ -10,42 +10,45 @@ type DeployStatus =
   | "running"
   | "failed";
 
-interface PublishState {
-  status: DeployStatus;
-  projectId: string | null;
-  deploymentId: string | null;
-  error: string | null;
-  progress: number;
-  siteUrl: string | null;
-  setStatus: (status: DeployStatus) => void;
-  setProjectId: (id: string | null) => void;
-  setDeploymentId: (id: string | null) => void;
-  setError: (error: string | null) => void;
-  setProgress: (progress: number) => void;
-  setSiteUrl: (url: string | null) => void;
-  reset: () => void;
+export const publishStatus = writable<DeployStatus>("idle");
+export const publishProjectId = writable<string | null>(null);
+export const publishDeploymentId = writable<string | null>(null);
+export const publishError = writable<string | null>(null);
+export const publishProgress = writable(0);
+export const publishSiteUrl = writable<string | null>(null);
+
+export function resetPublish() {
+  publishStatus.set("idle");
+  publishProjectId.set(null);
+  publishDeploymentId.set(null);
+  publishError.set(null);
+  publishProgress.set(0);
+  publishSiteUrl.set(null);
 }
 
-export const usePublishStore = create<PublishState>()((set) => ({
-  status: "idle",
-  projectId: null,
-  deploymentId: null,
-  error: null,
-  progress: 0,
-  siteUrl: null,
-  setStatus: (status) => set({ status }),
-  setProjectId: (projectId) => set({ projectId }),
-  setDeploymentId: (deploymentId) => set({ deploymentId }),
-  setError: (error) => set({ error }),
-  setProgress: (progress) => set({ progress }),
-  setSiteUrl: (siteUrl) => set({ siteUrl }),
-  reset: () =>
-    set({
-      status: "idle",
-      projectId: null,
-      deploymentId: null,
-      error: null,
-      progress: 0,
-      siteUrl: null,
-    }),
-}));
+// Aliases used by components
+export { publishStatus as status };
+export { publishError as error };
+export { publishProjectId as projectId };
+export { publishSiteUrl as siteUrl };
+export const reset = resetPublish;
+
+export function setStatus(s: DeployStatus) {
+  publishStatus.set(s);
+}
+
+export function setProjectId(id: string) {
+  publishProjectId.set(id);
+}
+
+export function setDeploymentId(id: string) {
+  publishDeploymentId.set(id);
+}
+
+export function setError(msg: string) {
+  publishError.set(msg);
+}
+
+export function setSiteUrl(url: string) {
+  publishSiteUrl.set(url);
+}

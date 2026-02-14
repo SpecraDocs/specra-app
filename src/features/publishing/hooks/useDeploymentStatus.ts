@@ -1,21 +1,39 @@
-import { useEffect, useRef, useCallback } from "react";
-import { usePublishStore } from "../store/publish-store";
+import { get } from "svelte/store";
+import {
+  publishDeploymentId,
+  publishStatus,
+  setStatus,
+  setError,
+} from "../store/publish-store";
 import { getDeployments } from "@/lib/api/projects";
 
-export function useDeploymentStatus(projectId: string | null) {
-  const deploymentId = usePublishStore((s) => s.deploymentId);
-  const status = usePublishStore((s) => s.status);
-  const setStatus = usePublishStore((s) => s.setStatus);
-  const setError = usePublishStore((s) => s.setError);
-  const setSiteUrl = usePublishStore((s) => s.setSiteUrl);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+let intervalId: ReturnType<typeof setInterval> | null = null;
 
-  const poll = useCallback(async () => {
-    if (!projectId || !deploymentId) return;
+export function useDeploymentStatus(projectId: string) {
+  // Stop any existing polling
+  stopPolling();
+
+  const deploymentId = get(publishDeploymentId);
+  const status = get(publishStatus);
+
+  const isActive =
+    status === "uploading" ||
+    status === "queued" ||
+    status === "building" ||
+    status === "deploying";
+
+  if (!isActive || !deploymentId) return;
+
+  intervalId = setInterval(async () => {
+    const currentDeploymentId = get(publishDeploymentId);
+    if (!currentDeploymentId) {
+      stopPolling();
+      return;
+    }
 
     try {
       const deployments = await getDeployments(projectId);
-      const deployment = deployments.find((d) => d.id === deploymentId);
+      const deployment = deployments.find((d) => d.id === currentDeploymentId);
 
       if (!deployment) return;
 
@@ -31,49 +49,28 @@ export function useDeploymentStatus(projectId: string | null) {
           break;
         case "RUNNING":
           setStatus("running");
-          // Stop polling
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          stopPolling();
           break;
         case "FAILED":
           setStatus("failed");
           setError(deployment.error ?? "Deployment failed");
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          stopPolling();
           break;
         case "CANCELLED":
           setStatus("failed");
           setError("Deployment was cancelled");
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          stopPolling();
           break;
       }
     } catch (err) {
       console.error("Failed to poll deployment status:", err);
     }
-  }, [projectId, deploymentId, setStatus, setError, setSiteUrl]);
+  }, 3000);
+}
 
-  useEffect(() => {
-    const isActive =
-      status === "uploading" ||
-      status === "queued" ||
-      status === "building" ||
-      status === "deploying";
-
-    if (isActive && projectId && deploymentId) {
-      intervalRef.current = setInterval(poll, 3000);
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
-    }
-  }, [status, projectId, deploymentId, poll]);
+export function stopPolling() {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
 }

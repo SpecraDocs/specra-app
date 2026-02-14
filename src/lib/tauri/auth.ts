@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useAuthStore } from "@/features/auth/store/auth-store";
+import { setAuth, clearAuth } from "@/features/auth/store/auth-store";
 import * as db from "./database";
 import { apiRequest } from "../api/client";
 import type { AuthVerifyResponse } from "../api/types";
@@ -9,7 +9,7 @@ export async function startLogin(): Promise<boolean> {
   const state = crypto.randomUUID().replace(/-/g, "");
   const port = 9877;
 
-  const loginUrl = `https://specra-docs.com/auth/login?cli=true&port=${port}&state=${state}`;
+  const loginUrl = `https://specra-docs.com/auth/cli?port=${port}&state=${state}`;
 
   // Open browser for auth
   await openUrl(loginUrl);
@@ -22,7 +22,7 @@ export async function startLogin(): Promise<boolean> {
     );
 
     // Store token and verify
-    useAuthStore.getState().setAuth(result.token, {
+    setAuth(result.token, {
       id: "",
       email: "",
       name: "",
@@ -38,7 +38,7 @@ export async function startLogin(): Promise<boolean> {
         image: user.image,
       };
 
-      useAuthStore.getState().setAuth(result.token, authUser);
+      setAuth(result.token, authUser);
 
       // Persist to SQLite
       await db.saveAuth({
@@ -71,8 +71,8 @@ export async function startLogin(): Promise<boolean> {
   }
 }
 
-export async function loginWithToken(token: string): Promise<boolean> {
-  useAuthStore.getState().setAuth(token, {
+export async function loginWithToken(tokenValue: string): Promise<boolean> {
+  setAuth(tokenValue, {
     id: "",
     email: "",
     name: "",
@@ -87,10 +87,10 @@ export async function loginWithToken(token: string): Promise<boolean> {
       image: user.image,
     };
 
-    useAuthStore.getState().setAuth(token, authUser);
+    setAuth(tokenValue, authUser);
 
     await db.saveAuth({
-      api_token: token,
+      api_token: tokenValue,
       api_url: "https://specra-docs.com",
       user_id: user.id,
       user_email: user.email,
@@ -101,13 +101,13 @@ export async function loginWithToken(token: string): Promise<boolean> {
 
     return true;
   } catch {
-    useAuthStore.getState().clearAuth();
+    clearAuth();
     return false;
   }
 }
 
 export async function logout(): Promise<void> {
-  useAuthStore.getState().clearAuth();
+  clearAuth();
   await db.clearAuthToken();
 }
 
@@ -116,7 +116,7 @@ export async function restoreAuth(): Promise<boolean> {
     const auth = await db.getAuth();
     if (!auth?.api_token) return false;
 
-    useAuthStore.getState().setAuth(auth.api_token, {
+    setAuth(auth.api_token, {
       id: auth.user_id ?? "",
       email: auth.user_email ?? "",
       name: auth.user_name ?? "",

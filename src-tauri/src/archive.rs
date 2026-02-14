@@ -1,7 +1,7 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde::Deserialize;
-use std::io::Write;
+
 
 #[derive(Deserialize)]
 pub struct FileEntry {

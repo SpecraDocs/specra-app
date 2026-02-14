@@ -1,5 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import { useAuthStore } from "@/features/auth/store/auth-store";
+import { get } from "svelte/store";
+import { token, apiUrl, clearAuth } from "@/features/auth/store/auth-store";
 
 class ApiError extends Error {
   constructor(
@@ -15,17 +16,18 @@ export async function apiRequest<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const { token, apiUrl } = useAuthStore.getState();
+  const currentToken = get(token);
+  const currentApiUrl = get(apiUrl);
 
-  if (!token) {
+  if (!currentToken) {
     throw new Error("Not authenticated.");
   }
 
-  const url = `${apiUrl}${path}`;
+  const url = `${currentApiUrl}${path}`;
   const res = await fetch(url, {
     ...options,
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${currentToken}`,
       "Content-Type": "application/json",
       ...options.headers,
     },
@@ -41,7 +43,7 @@ export async function apiRequest<T = unknown>(
     }
 
     if (res.status === 401) {
-      useAuthStore.getState().clearAuth();
+      clearAuth();
     }
 
     throw new ApiError(res.status, message);
@@ -55,17 +57,18 @@ export async function apiUpload(
   body: Uint8Array,
   headers: Record<string, string> = {}
 ): Promise<unknown> {
-  const { token, apiUrl } = useAuthStore.getState();
+  const currentToken = get(token);
+  const currentApiUrl = get(apiUrl);
 
-  if (!token) {
+  if (!currentToken) {
     throw new Error("Not authenticated.");
   }
 
-  const url = `${apiUrl}${path}`;
+  const url = `${currentApiUrl}${path}`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${currentToken}`,
       "Content-Type": "application/octet-stream",
       ...headers,
     },

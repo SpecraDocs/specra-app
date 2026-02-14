@@ -1,58 +1,41 @@
-import { useCallback, useRef, useEffect } from "react";
-import { useEditorStore } from "../store/editor-store";
+import { isSaving, hasUnsavedChanges } from "../store/editor-store";
 import * as db from "@/lib/tauri/database";
 
-export function useAutoSave(documentId: string | undefined) {
-  const setSaving = useEditorStore((s) => s.setSaving);
-  const setHasUnsavedChanges = useEditorStore((s) => s.setHasUnsavedChanges);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestContentRef = useRef<string | null>(null);
+let timeoutId: ReturnType<typeof setTimeout> | null = null;
+let latestContent: string | null = null;
 
-  const save = useCallback(
-    async (content: string) => {
-      if (!documentId) return;
-      setSaving(true);
-      try {
-        // Simple hash for change detection
-        const contentHash = await hashContent(content);
-        await db.updateDocument(documentId, {
-          content,
-          content_hash: contentHash,
-        });
-        setHasUnsavedChanges(false);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [documentId, setSaving, setHasUnsavedChanges]
-  );
+async function save(documentId: string, content: string) {
+  isSaving.set(true);
+  try {
+    const contentHash = await hashContent(content);
+    await db.updateDocument(documentId, {
+      content,
+      content_hash: contentHash,
+    });
+    hasUnsavedChanges.set(false);
+  } finally {
+    isSaving.set(false);
+  }
+}
 
-  const debouncedSave = useCallback(
-    (content: string) => {
-      latestContentRef.current = content;
-      setHasUnsavedChanges(true);
+export function debouncedSave(documentId: string, content: string, delay = 1500) {
+  latestContent = content;
+  hasUnsavedChanges.set(true);
 
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => {
-        if (latestContentRef.current !== null) {
-          save(latestContentRef.current);
-        }
-      }, 1500);
-    },
-    [save, setHasUnsavedChanges]
-  );
+  if (timeoutId) clearTimeout(timeoutId);
+  timeoutId = setTimeout(() => {
+    if (latestContent !== null) {
+      save(documentId, latestContent);
+    }
+  }, delay);
+}
 
-  // Flush on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (latestContentRef.current !== null && documentId) {
-        save(latestContentRef.current);
-      }
-    };
-  }, [documentId, save]);
-
-  return debouncedSave;
+export function flushSave(documentId: string) {
+  if (timeoutId) clearTimeout(timeoutId);
+  if (latestContent !== null) {
+    save(documentId, latestContent);
+    latestContent = null;
+  }
 }
 
 async function hashContent(content: string): Promise<string> {

@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { writable } from "svelte/store";
 
 export interface Workspace {
   id: string;
@@ -10,37 +10,21 @@ export interface Workspace {
   updated_at: string;
 }
 
-interface WorkspaceState {
-  workspaces: Workspace[];
-  activeWorkspaceId: string | null;
-  isLoading: boolean;
-  setWorkspaces: (workspaces: Workspace[]) => void;
-  setActiveWorkspace: (id: string | null) => void;
-  addWorkspace: (workspace: Workspace) => void;
-  updateWorkspace: (id: string, updates: Partial<Workspace>) => void;
-  removeWorkspace: (id: string) => void;
-  setLoading: (loading: boolean) => void;
+export const workspaces = writable<Workspace[]>([]);
+export const activeWorkspaceId = writable<string | null>(null);
+export const workspacesLoading = writable(false);
+
+export function addWorkspace(workspace: Workspace) {
+  workspaces.update((ws) => [...ws, workspace]);
 }
 
-export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
-  workspaces: [],
-  activeWorkspaceId: null,
-  isLoading: false,
-  setWorkspaces: (workspaces) => set({ workspaces }),
-  setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
-  addWorkspace: (workspace) =>
-    set((s) => ({ workspaces: [...s.workspaces, workspace] })),
-  updateWorkspace: (id, updates) =>
-    set((s) => ({
-      workspaces: s.workspaces.map((w) =>
-        w.id === id ? { ...w, ...updates } : w
-      ),
-    })),
-  removeWorkspace: (id) =>
-    set((s) => ({
-      workspaces: s.workspaces.filter((w) => w.id !== id),
-      activeWorkspaceId:
-        s.activeWorkspaceId === id ? null : s.activeWorkspaceId,
-    })),
-  setLoading: (isLoading) => set({ isLoading }),
-}));
+export function updateWorkspace(id: string, updates: Partial<Workspace>) {
+  workspaces.update((ws) =>
+    ws.map((w) => (w.id === id ? { ...w, ...updates } : w))
+  );
+}
+
+export function removeWorkspace(id: string) {
+  workspaces.update((ws) => ws.filter((w) => w.id !== id));
+  activeWorkspaceId.update((active) => (active === id ? null : active));
+}

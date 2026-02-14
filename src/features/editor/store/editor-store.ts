@@ -1,23 +1,14 @@
-import { create } from "zustand";
+import { writable } from "svelte/store";
 
-interface EditorState {
-  activeDocumentId: string | null;
-  isSaving: boolean;
-  hasUnsavedChanges: boolean;
-  metadataPanelOpen: boolean;
-  setActiveDocument: (id: string | null) => void;
-  setSaving: (saving: boolean) => void;
-  setHasUnsavedChanges: (has: boolean) => void;
-  setMetadataPanelOpen: (open: boolean) => void;
+export const activeDocumentId = writable<string | null>(null);
+export const isSaving = writable(false);
+export const hasUnsavedChanges = writable(false);
+export const metadataPanelOpen = writable(false);
+
+export function setActiveDocument(id: string | null) {
+  activeDocumentId.set(id);
 }
 
-export const useEditorStore = create<EditorState>()((set) => ({
-  activeDocumentId: null,
-  isSaving: false,
-  hasUnsavedChanges: false,
-  metadataPanelOpen: false,
-  setActiveDocument: (id) => set({ activeDocumentId: id }),
-  setSaving: (isSaving) => set({ isSaving }),
-  setHasUnsavedChanges: (hasUnsavedChanges) => set({ hasUnsavedChanges }),
-  setMetadataPanelOpen: (open) => set({ metadataPanelOpen: open }),
-}));
+export function setMetadataPanelOpen(open: boolean) {
+  metadataPanelOpen.set(open);
+}

@@ -1,21 +1,18 @@
 {
   "name": "specra-app",
   "version": "0.1.0",
-  "description": "",
+  "description": "Specra desktop documentation editor built with Svelte + Tauri",
   "type": "module",
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "license": "MIT",
   "dependencies": {
-    "@blocknote/core": "^0.46.2",
-    "@blocknote/mantine": "^0.46.2",
-    "@blocknote/react": "^0.46.2",
-    "@blocknote/shadcn": "^0.46.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-fs": "^2.4.5",
@@ -24,21 +21,16 @@
     "@tauri-apps/plugin-sql": "^2.3.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "lucide-react": "^0.563.0",
+    "lucide-svelte": "^0.469.0",
     "postcss": "^8.5.6",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0",
+    "svelte": "^5.25.0",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18",
-    "zustand": "^5.0.11"
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tauri-apps/cli": "^2",
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
+    "svelte-check": "^4.1.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.3"
   }

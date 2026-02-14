@@ -1,41 +1,33 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { writable } from "svelte/store";
 
-type Theme = "light" | "dark" | "system";
-type ActivityView = "documents" | "projects" | "settings";
+export type Theme = "light" | "dark" | "system";
+export type ActivityView = "documents" | "projects" | "settings";
 
-interface UIState {
-  theme: Theme;
-  sidebarOpen: boolean;
-  activeView: ActivityView;
-  commandPaletteOpen: boolean;
-  setTheme: (theme: Theme) => void;
-  toggleSidebar: () => void;
-  setSidebarOpen: (open: boolean) => void;
-  setActiveView: (view: ActivityView) => void;
-  setCommandPaletteOpen: (open: boolean) => void;
+function createPersistedStore<T>(key: string, initial: T) {
+  const stored = localStorage.getItem(key);
+  const value = stored ? JSON.parse(stored) : initial;
+  const store = writable<T>(value);
+  store.subscribe((v) => localStorage.setItem(key, JSON.stringify(v)));
+  return store;
 }
 
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      theme: "system",
-      sidebarOpen: true,
-      activeView: "documents",
-      commandPaletteOpen: false,
-      setTheme: (theme) => set({ theme }),
-      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-      setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      setActiveView: (view) => set({ activeView: view }),
-      setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
-    }),
-    {
-      name: "specra-ui",
-      partialize: (state) => ({
-        theme: state.theme,
-        sidebarOpen: state.sidebarOpen,
-        activeView: state.activeView,
-      }),
-    }
-  )
-);
+export const theme = createPersistedStore<Theme>("specra-ui-theme", "system");
+export const sidebarOpen = createPersistedStore<boolean>("specra-ui-sidebar", true);
+export const activeView = createPersistedStore<ActivityView>("specra-ui-view", "documents");
+export const commandPaletteOpen = writable(false);
+
+export function setTheme(value: Theme) {
+  theme.set(value);
+}
+
+export function setCommandPaletteOpen(open: boolean) {
+  commandPaletteOpen.set(open);
+}
+
+export function toggleSidebar() {
+  sidebarOpen.update((v) => !v);
+}
+
+export function setActiveView(view: ActivityView) {
+  activeView.set(view);
+}

@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { writable, get } from "svelte/store";
 
 export interface Document {
   id: string;
@@ -21,41 +21,29 @@ export interface Document {
   content_hash?: string;
 }
 
-interface DocumentState {
-  documents: Document[];
-  expandedIds: Set<string>;
-  isLoading: boolean;
-  setDocuments: (documents: Document[]) => void;
-  addDocument: (document: Document) => void;
-  updateDocument: (id: string, updates: Partial<Document>) => void;
-  removeDocument: (id: string) => void;
-  toggleExpanded: (id: string) => void;
-  setLoading: (loading: boolean) => void;
+export const documents = writable<Document[]>([]);
+export const expandedIds = writable<Set<string>>(new Set());
+export const documentsLoading = writable(false);
+
+export function addDocument(doc: Document) {
+  documents.update((docs) => [...docs, doc]);
 }
 
-export const useDocumentStore = create<DocumentState>()((set) => ({
-  documents: [],
-  expandedIds: new Set<string>(),
-  isLoading: false,
-  setDocuments: (documents) => set({ documents }),
-  addDocument: (document) =>
-    set((s) => ({ documents: [...s.documents, document] })),
-  updateDocument: (id, updates) =>
-    set((s) => ({
-      documents: s.documents.map((d) =>
-        d.id === id ? { ...d, ...updates } : d
-      ),
-    })),
-  removeDocument: (id) =>
-    set((s) => ({
-      documents: s.documents.filter((d) => d.id !== id),
-    })),
-  toggleExpanded: (id) =>
-    set((s) => {
-      const next = new Set(s.expandedIds);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return { expandedIds: next };
-    }),
-  setLoading: (isLoading) => set({ isLoading }),
-}));
+export function updateDocument(id: string, updates: Partial<Document>) {
+  documents.update((docs) =>
+    docs.map((d) => (d.id === id ? { ...d, ...updates } : d))
+  );
+}
+
+export function removeDocument(id: string) {
+  documents.update((docs) => docs.filter((d) => d.id !== id));
+}
+
+export function toggleExpanded(id: string) {
+  expandedIds.update((ids) => {
+    const next = new Set(ids);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+}
